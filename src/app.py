@@ -15,15 +15,22 @@ input_file_name = input('Enter the file name without extension (make sure the fi
 
 db = firestore.client(database_id=input_database_id)
 data_path = "data/{}.json".format(input_file_name)
+logger.info(data_path)
 
 # Load JSON data
 with open(data_path, 'r') as file:
-    data = json.load(file)
+    data = [json.loads(line) for line in file]
+
+transformed_data = {}
+for item in data:
+    key = item['_id']['$oid']
+    value = {k: v for k, v in item.items() if k not in ['__v', '_id']}
+    transformed_data[key] = value
 
 # Upload data to Firestore
 # Set data in each document within the 'data' collection
 try:
-    for document_id, document_data in data.items():
+    for document_id, document_data in transformed_data.items():
         doc_ref = db.collection(input_file_name).document(document_id)
         doc_ref.set(document_data)
 except Exception as e:
